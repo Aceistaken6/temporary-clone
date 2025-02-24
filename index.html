@@ -1477,6 +1477,120 @@
         sections.forEach(section => {
             observer.observe(section);
         });
+        // Add this to your existing script section
+// Google Sign-In Implementation (Frontend Only)
+const signupButtons = document.querySelectorAll('.signup-btn');
+
+signupButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Load Google's authentication API
+        if (!window.gapi) {
+            loadGoogleAPI();
+        } else {
+            startGoogleAuth();
+        }
+    });
+});
+
+// Load the Google API
+function loadGoogleAPI() {
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/platform.js';
+    script.onload = function() {
+        gapi.load('auth2', function() {
+            gapi.auth2.init({
+                client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' // Replace with your client ID
+            }).then(startGoogleAuth);
+        });
+    };
+    document.head.appendChild(script);
+}
+
+// Start the Google authentication process
+function startGoogleAuth() {
+    const auth2 = gapi.auth2.getAuthInstance();
+    
+    auth2.signIn().then(function(googleUser) {
+        // Get user profile information
+        const profile = googleUser.getBasicProfile();
+        const token = googleUser.getAuthResponse().id_token;
+        
+        // Store auth information
+        localStorage.setItem('userToken', token);
+        localStorage.setItem('userName', profile.getName());
+        localStorage.setItem('userEmail', profile.getEmail());
+        
+        // Update UI to show signed-in state
+        updateUIAfterSignIn(profile.getName());
+        
+        console.log('User signed in:', profile.getName());
+    }, function(error) {
+        console.error('Sign-in error:', error);
+    });
+}
+
+// Update UI after successful sign-in
+function updateUIAfterSignIn(userName) {
+    // Change signup button to show user is signed in
+    signupButtons.forEach(button => {
+        button.textContent = `Hi, ${userName.split(' ')[0]}`;
+        button.classList.add('signed-in');
+    });
+    
+    // Handle event cards differently for signed-in users
+    const eventCards = document.querySelectorAll('.event-card');
+    eventCards.forEach(card => {
+        const chooseButton = card.querySelector('ul li:first-child');
+        if (chooseButton) {
+            chooseButton.style.backgroundColor = '#4285F4';
+            chooseButton.style.color = 'white';
+            chooseButton.style.padding = '8px 12px';
+            chooseButton.style.borderRadius = '4px';
+            chooseButton.style.textAlign = 'center';
+            
+            // Update click behavior for logged-in users
+            chooseButton.onclick = function() {
+                const planTitle = card.querySelector('.event-title').textContent;
+                alert(`You've selected the ${planTitle}. Thanks, ${userName.split(' ')[0]}!`);
+            };
+        }
+    });
+}
+
+// Check if user is already signed in on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('userToken')) {
+        updateUIAfterSignIn(localStorage.getItem('userName') || 'User');
+    }
+    
+    // Make "Choose This Plan" items clickable
+    const eventCards = document.querySelectorAll('.event-card');
+    eventCards.forEach(card => {
+        const chooseButton = card.querySelector('ul li:first-child');
+        if (chooseButton) {
+            chooseButton.style.cursor = 'pointer';
+            chooseButton.style.fontWeight = 'bold';
+            chooseButton.style.color = '#4285F4';
+            
+            chooseButton.addEventListener('click', function() {
+                if (!localStorage.getItem('userToken')) {
+                    // If not logged in, initiate Google auth
+                    if (!window.gapi) {
+                        loadGoogleAPI();
+                    } else {
+                        startGoogleAuth();
+                    }
+                } else {
+                    // If logged in, handle plan selection
+                    const planTitle = card.querySelector('.event-title').textContent;
+                    alert(`You've selected the ${planTitle}. Thanks, ${localStorage.getItem('userName').split(' ')[0]}!`);
+                }
+            });
+        }
+    });
+});
     </script>
 </body>
 </html>
